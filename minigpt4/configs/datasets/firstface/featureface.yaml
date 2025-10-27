@@ -3,8 +3,8 @@ datasets:
     data_type: images
     
     build_info:
-      image_path: /home/czb/big_space/datasets/Emotion/MER2023/video
+      image_path: /export/home/scratch/qze/emotion-llama/MER2023+MER2024
 
-      ann_path: /home/user/selected_face/face_emotion/relative_train_NCEV.txt
-      # ann_path: /home/user/selected_face/face_emotion/MERR_coarse_grained.txt
-      # ann_path: /home/user/selected_face/face_emotion/MERR_fine_grained.txt
+      ann_path: /export/home/scratch/qze/emotion-llama/MER2023+MER2024/relative_train_NCEV.txt
+      # ann_path: /export/home/scratch/qze/emotion-llama/MER2023+MER2024/MERR_coarse_grained.txt
+      # ann_path: /export/home/scratch/qze/emotion-llama/MER2023+MER2024/MERR_fine_grained.txt

@@ -4,9 +4,9 @@ model:
   max_txt_len: 1024
   image_size: 448
   end_sym: "</s>"
-  llama_model: "/home/user/project/Emotion-LLaMA/checkpoints/Llama-2-7b-chat-hf"
+  llama_model: "/local/user/qze/Code/Emotion-LLaMA/checkpoints/Llama-2-7b-chat-hf"
 
-  ckpt: "/home/user/project/Emotion-LLaMA/checkpoints/minigptv2_checkpoint.pth"
+  ckpt: "/local/user/qze/Code/Emotion-LLaMA/checkpoints/minigptv2_checkpoint.pth"
 
   use_grad_checkpoint: True
   chat_template: True

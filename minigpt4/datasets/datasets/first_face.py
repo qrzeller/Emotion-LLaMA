@@ -81,15 +81,15 @@ class FeatureFaceDataset(Dataset):
         for ii, emo in enumerate(emos): self.emo2idx[emo] = ii
         for ii, emo in enumerate(emos): self.idx2emo[ii] = emo
 
-        json_file_path = "/home/user/selected_face/face_emotion/MERR_coarse_grained.json" 
+        json_file_path = "/export/home/scratch/qze/MERR/MERR_coarse_grained.json" 
         with open(json_file_path, 'r') as json_file:
             self.MERR_coarse_grained_dict = json.load(json_file)
 
-        reason_json_file_path = "/home/user/selected_face/face_emotion/MERR_fine_grained.json"
+        reason_json_file_path = "/export/home/scratch/qze/MERR/MERR_fine_grained.json"
         with open(reason_json_file_path, 'r') as json_file:
             self.MERR_fine_grained_dict = json.load(json_file)
 
-        self.character_lines = pd.read_csv('/home/user/selected_face/face_emotion/transcription_en_all.csv')
+        self.character_lines = pd.read_csv('/export/home/scratch/qze/transcription_en_all.csv')
 
 
     def __len__(self):
@@ -175,16 +175,19 @@ class FeatureFaceDataset(Dataset):
 
 
     def get(self, video_name):
+        # Set the base features path for MER2023-SEMI
+        features_base_path = "/export/home/scratch/qze/features_of_MER2023-SEMI"
+        
         # FaceMAE feature
-        FaceMAE_feats_path = os.path.join(self.file_path, 'mae_340_UTT', video_name + '.npy')
+        FaceMAE_feats_path = os.path.join(features_base_path, 'mae_340_UTT_MER2023-SEMI', video_name + '.npy')
         FaceMAE_feats = torch.tensor(np.load(FaceMAE_feats_path))
 
         # VideoMAE feature
-        VideoMAE_feats_path = os.path.join(self.file_path, 'maeV_399_UTT', video_name + '.npy')
+        VideoMAE_feats_path = os.path.join(features_base_path, 'maeV_399_UTT_MER2023-SEMI', video_name + '.npy')
         VideoMAE_feats = torch.tensor(np.load(VideoMAE_feats_path))
 
         # Audio feature
-        Audio_feats_path = os.path.join(self.file_path, 'HL-UTT', video_name + '.npy')
+        Audio_feats_path = os.path.join(features_base_path, 'HL-UTT_MER2023-SEMI', video_name + '.npy')
         Audio_feats = torch.tensor(np.load(Audio_feats_path))
 
         return FaceMAE_feats, VideoMAE_feats, Audio_feats

@@ -5,8 +5,8 @@ model:
   end_sym: "</s>"
   low_resource: False
   prompt_template: '[INST] {} [/INST]'
-  llama_model: "/home/user/project/Emotion-LLaMA/checkpoints/Llama-2-7b-chat-hf"
-  ckpt: "/home/user/project/Emotion-LLaMA/checkpoints/save_checkpoint/stage2/checkpoint_best.pth"
+  llama_model: "/local/user/qze/Code/Emotion-LLaMA/checkpoints/Llama-2-7b-chat-hf"
+  ckpt: "/export/home/scratch/qze/checkpoint/stage2/checkpoint_best.pth"
   lora_r: 64
   lora_alpha: 16
 
@@ -24,23 +24,20 @@ datasets:
 
 evaluation_datasets:
   feature_face_caption:
-    eval_file_path: /home/user/selected_face/face_emotion/relative_test3_NCEV.txt # MER2023
+    eval_file_path: /export/home/scratch/qze/relative_test3_NCEV.txt
 
-    img_path: /home/czb/big_space/datasets/Emotion/MER2023/video
-
-    # eval_file_path: /home/user/selected_face/DFEW/reltive_DFEW_set_1_test.txt
-    # img_path: /home/user/selected_face/DFEW/images     
+    img_path: /export/home/scratch/qze/emotion-llama/MER2023+MER2024
 
     max_new_tokens: 500
     batch_size: 1
 
   mer2024_caption:
-    eval_file_path: /home/czb/big_space/datasets/Emotion/MER2024/MER2024-noise_NCE.txt # MER2024
-    img_path: /home/czb/big_space/datasets/Emotion/MER2024/video-unlabeled-with-test2noise
+    eval_file_path: /export/home/scratch/qze/MER2024-noise_NCE.txt
+    img_path: /export/home/scratch/qze/emotion-llama/MER2023+MER2024
     max_new_tokens: 500
     batch_size: 1  
 
 run:
   task: image_text_pretrain
   name: minigptv2_evaluation
-  save_path: /home/user/project/Emotion-LLaMA/results
+  save_path: /export/home/scratch/qze/results
