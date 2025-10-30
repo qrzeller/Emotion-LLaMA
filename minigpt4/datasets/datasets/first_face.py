@@ -89,7 +89,46 @@ class FeatureFaceDataset(Dataset):
         with open(reason_json_file_path, 'r') as json_file:
             self.MERR_fine_grained_dict = json.load(json_file)
 
-        self.character_lines = pd.read_csv('/export/home/scratch/qze/transcription_en_all.csv')
+        # Resolve transcription CSV (MER2023/MER2024): allow env override and local fallback
+        candidates = []
+        env_csv = os.environ.get('EMOTION_LLAMA_TRANSCRIPT_CSV')
+        if env_csv:
+            candidates.append(env_csv)
+        # Try alongside the annotation file
+        candidates.append(os.path.join(self.file_path, 'transcription_en_all.csv'))
+        candidates.append(os.path.join(self.file_path, 'transcription_all_new.csv'))
+        # Common cluster paths fallback
+        candidates.append('/export/home/scratch/qze/transcription_en_all.csv')
+        candidates.append('/export/home/scratch/qze/transcription_all_new.csv')
+
+        self.character_lines = None
+        transcription_csv_path = None
+        for cand in candidates:
+            if cand and os.path.isfile(cand):
+                self.character_lines = pd.read_csv(cand)
+                transcription_csv_path = cand
+                break
+        if self.character_lines is None:
+            raise FileNotFoundError(
+                'Could not find transcription CSV. Set EMOTION_LLAMA_TRANSCRIPT_CSV or place "transcription_en_all.csv" '
+                f'in the same directory as the annotation file: {self.file_path}'
+            )
+
+        # Determine sentence column
+        if 'sentence' in self.character_lines.columns:
+            self._sentence_col = 'sentence'
+        elif 'sentence_en' in self.character_lines.columns:
+            self._sentence_col = 'sentence_en'
+        else:
+            raise KeyError(
+                'Transcription CSV missing expected columns. Need one of: sentence, sentence_en. '
+                f'Columns found: {list(self.character_lines.columns)}'
+            )
+        
+        # Log transcription source
+        print(f"✓ Loaded transcription CSV: {transcription_csv_path}")
+        print(f"  - Using column: '{self._sentence_col}'")
+        print(f"  - Total transcriptions: {len(self.character_lines)}")
 
 
     def __len__(self):
@@ -99,12 +138,32 @@ class FeatureFaceDataset(Dataset):
         t = self.tmp[index]
         video_name = t[0]
 
-        video_path = os.path.join(self.vis_root, video_name + ".mp4")
-        if os.path.exists(video_path):
-            image = self.extract_frame(video_path)
+        mp4_path = os.path.join(self.vis_root, video_name + ".mp4")
+        avi_path = os.path.join(self.vis_root, video_name + ".avi")
+        jpg_path = os.path.join(self.vis_root, video_name + ".jpg")
+
+        # Log video format used for first sample only
+        if index == 0:
+            print(f"✓ Video source directory: {self.vis_root}")
+
+        if os.path.exists(mp4_path):
+            if index == 0:
+                print(f"  - Using .mp4 video files (extracting first frame)")
+            image = self.extract_frame(mp4_path)
+        elif os.path.exists(avi_path):
+            if index == 0:
+                print(f"  - Using .avi video files (extracting first frame)")
+            image = self.extract_frame(avi_path)
+        elif os.path.exists(jpg_path):
+            if index == 0:
+                print(f"  - Using pre-extracted .jpg frames")
+            # Fallback: use pre-extracted frame if available
+            image = Image.open(jpg_path).convert("RGB")
+            image = np.array(image)
         else:
-            video_path = os.path.join(self.vis_root, video_name + ".avi")
-            image = self.extract_frame(video_path)
+            raise FileNotFoundError(
+                f"Could not find video/image for '{video_name}'. Searched: {mp4_path}, {avi_path}, {jpg_path}"
+            )
 
         image = Image.fromarray(image.astype('uint8'))
         image = image.convert('RGB')
@@ -149,7 +208,10 @@ class FeatureFaceDataset(Dataset):
 
 
         emotion = self.emo2idx[t[2]]
-        sentence = self.character_lines.loc[self.character_lines['name'] == video_name, 'sentence'].values[0]
+        sentence_row = self.character_lines.loc[self.character_lines['name'] == video_name, self._sentence_col]
+        if len(sentence_row.values) == 0:
+            raise KeyError(f"Name '{video_name}' not found in transcription CSV for column {self._sentence_col}.")
+        sentence = sentence_row.values[0]
         character_line = "The person in video says: {}. ".format(sentence)
         
         instruction = "<video><VideoHere></video> <feature><FeatureHere></feature> {} [{}] {} ".format(character_line, task, random.choice(instruction_pool))
@@ -175,19 +237,50 @@ class FeatureFaceDataset(Dataset):
 
 
     def get(self, video_name):
-        # Set the base features path for MER2023-SEMI
+        """
+        Load precomputed features for the given video name.
+
+        Priority:
+        1) If MER2024-style directories exist next to the annotation file (self.file_path),
+           use them: mae_340_23_UTT, maeVideo_399_23_UTT, HL_23_UTT.
+        2) Otherwise, fall back to the original MER2023-SEMI hardcoded base path and names.
+        """
+
+        # Option 1: MER2024-style relative directories next to ann file
+        rel_face = os.path.join(self.file_path, 'mae_340_23_UTT', video_name + '.npy')
+        rel_video = os.path.join(self.file_path, 'maeVideo_399_23_UTT', video_name + '.npy')
+        rel_audio = os.path.join(self.file_path, 'HL_23_UTT', video_name + '.npy')
+
+        if os.path.isfile(rel_face) and os.path.isfile(rel_video) and os.path.isfile(rel_audio):
+            # Log first time to confirm MER2024-style features are used
+            if not hasattr(self, '_feature_path_logged'):
+                print(f"✓ Using MER2024-style features from: {self.file_path}")
+                print(f"  - FaceMAE: mae_340_23_UTT/")
+                print(f"  - VideoMAE: maeVideo_399_23_UTT/")
+                print(f"  - Audio: HL_23_UTT/")
+                self._feature_path_logged = True
+            FaceMAE_feats = torch.tensor(np.load(rel_face))
+            VideoMAE_feats = torch.tensor(np.load(rel_video))
+            Audio_feats = torch.tensor(np.load(rel_audio))
+            return FaceMAE_feats, VideoMAE_feats, Audio_feats
+
+        # Option 2: MER2023-SEMI hardcoded base path
         features_base_path = "/export/home/scratch/qze/features_of_MER2023-SEMI"
-        
-        # FaceMAE feature
+
+        # Log first time to confirm fallback is used
+        if not hasattr(self, '_feature_path_logged'):
+            print(f"⚠ Using MER2023-SEMI fallback features from: {features_base_path}")
+            print(f"  - FaceMAE: mae_340_UTT_MER2023-SEMI/")
+            print(f"  - VideoMAE: maeV_399_UTT_MER2023-SEMI/")
+            print(f"  - Audio: HL-UTT_MER2023-SEMI/")
+            self._feature_path_logged = True
+
         FaceMAE_feats_path = os.path.join(features_base_path, 'mae_340_UTT_MER2023-SEMI', video_name + '.npy')
-        FaceMAE_feats = torch.tensor(np.load(FaceMAE_feats_path))
-
-        # VideoMAE feature
         VideoMAE_feats_path = os.path.join(features_base_path, 'maeV_399_UTT_MER2023-SEMI', video_name + '.npy')
-        VideoMAE_feats = torch.tensor(np.load(VideoMAE_feats_path))
-
-        # Audio feature
         Audio_feats_path = os.path.join(features_base_path, 'HL-UTT_MER2023-SEMI', video_name + '.npy')
+
+        FaceMAE_feats = torch.tensor(np.load(FaceMAE_feats_path))
+        VideoMAE_feats = torch.tensor(np.load(VideoMAE_feats_path))
         Audio_feats = torch.tensor(np.load(Audio_feats_path))
 
         return FaceMAE_feats, VideoMAE_feats, Audio_feats
