@@ -26,7 +26,8 @@ evaluation_datasets:
   feature_face_caption:
     eval_file_path: /export/home/scratch/qze/relative_test3_NCEV.txt
 
-    img_path: /export/home/scratch/qze/emotion-llama/MER2023+MER2024
+    # that is the real dataset (not feature) path.
+    img_path: /export/home/scratch/qze/datasets/MER2023/test3
 
     max_new_tokens: 500
     batch_size: 1
