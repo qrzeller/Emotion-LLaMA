@@ -58,8 +58,39 @@ class MER2024Dataset(Dataset):
         for ii, emo in enumerate(self.emos): self.emo2idx[emo] = ii
         for ii, emo in enumerate(self.emos): self.emo2idx[ii] = emo
 
-        # # MER2024 transcription
-        self.character_lines = pd.read_csv('/home/czb/big_space/datasets/Emotion/MER2024/transcription_all_new.csv')
+        # Transcription CSV: try environment/config-friendly resolution
+        candidates = []
+        env_csv = os.environ.get('EMOTION_LLAMA_TRANSCRIPT_CSV')
+        if env_csv:
+            candidates.append(env_csv)
+        # Try alongside the annotation file
+        candidates.append(os.path.join(self.file_path, 'transcription_all_new.csv'))
+        candidates.append(os.path.join(self.file_path, 'transcription_en_all.csv'))
+        # Common cluster paths fallback
+        candidates.append('/export/home/scratch/qze/transcription_all_new.csv')
+        candidates.append('/export/home/scratch/qze/transcription_en_all.csv')
+
+        self.character_lines = None
+        for cand in candidates:
+            if cand and os.path.isfile(cand):
+                self.character_lines = pd.read_csv(cand)
+                break
+        if self.character_lines is None:
+            raise FileNotFoundError(
+                'Could not find transcription CSV. Set EMOTION_LLAMA_TRANSCRIPT_CSV or place "transcription_all_new.csv" '
+                f'in the same directory as the annotation file: {self.file_path}'
+            )
+
+        # Determine which column holds the sentence text
+        if 'sentence_en' in self.character_lines.columns:
+            self._sentence_col = 'sentence_en'
+        elif 'sentence' in self.character_lines.columns:
+            self._sentence_col = 'sentence'
+        else:
+            raise KeyError(
+                'Transcription CSV missing expected columns. Need one of: sentence_en, sentence. '
+                f'Columns found: {list(self.character_lines.columns)}'
+            )
 
     def __len__(self):
         return len(self.tmp)
@@ -101,7 +132,11 @@ class MER2024Dataset(Dataset):
             instruction_pool = self.emotion_instruction_pool
         
         emotion = self.emo2idx[t[2]]
-        sentence = self.character_lines.loc[self.character_lines['name'] == video_name, 'sentence_en'].values[0] # MER2024
+        # Fetch sentence using detected column
+        sentence_row = self.character_lines.loc[self.character_lines['name'] == video_name, self._sentence_col]
+        if len(sentence_row.values) == 0:
+            raise KeyError(f"Name '{video_name}' not found in transcription CSV for column {self._sentence_col}.")
+        sentence = sentence_row.values[0]  # MER2024
 
         character_line = "The person in video says: {}. ".format(sentence)
         instruction = "<video><VideoHere></video> <feature><FeatureHere></feature> {} [{}] {} ".format(character_line, task, random.choice(instruction_pool))
