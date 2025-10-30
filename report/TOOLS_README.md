@@ -1,6 +1,6 @@
 # Analysis Tools - Quick Reference
 
-**Location:** `/local/user/qze/Code/Emotion-LLaMA/`
+**Location:** `/local/user/qze/Code/Emotion-LLaMA/scripts/`
 
 ---
 
@@ -11,7 +11,7 @@
 
 **Usage:**
 ```bash
-python verify_paths.py
+python scripts/verify_paths.py
 ```
 
 **Output:**
@@ -31,15 +31,15 @@ python verify_paths.py
 **Usage:**
 ```bash
 # Inspect first sample
-python inspect_sample.py
+python scripts/inspect_sample.py
 
 # Inspect specific sample by index
-python inspect_sample.py --sample_id 0
-python inspect_sample.py --sample_id 100
+python scripts/inspect_sample.py --sample_id 0
+python scripts/inspect_sample.py --sample_id 100
 
 # Inspect specific sample by video name
-python inspect_sample.py --sample_id samplenew_00006611
-python inspect_sample.py --sample_id sample_00002328
+python scripts/inspect_sample.py --sample_id samplenew_00006611
+python scripts/inspect_sample.py --sample_id sample_00002328
 ```
 
 **Output:**
