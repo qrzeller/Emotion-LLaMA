@@ -112,3 +112,11 @@ dmypy.json
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Model checkpoints and large files
+checkpoints/
+*.pth
+*.pt
+*.ckpt
+*.bin
+*.safetensors
