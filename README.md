@@ -1,3 +1,15 @@
+# EDITS and test
+- Code was run and setup for inference on MER2023 dataset
+- Structure and hardcoded path is difficult
+- - Consider copying dataset and feature structure from @qze.csem. Dataset expected to be in export/.../user
+- - If not, MER dataset available on hugginface (300gb) + look for googledrive of repo for features and index (some link available in issues of igthub too) files.
+- Code tested and modified for : `.venv/bin/torchrun --nproc_per_node 1 eval_emotion.py --cfg-path eval_configs/eval_emotion.yaml --dataset feature_face_caption`
+- Report available in [Report folder](/report)
+- Time hungry issues :
+- - Torchrun can use other libraries than .venv, consider using full path.
+- - Zip from initial repo can be recursive and missalign, only 7z is working. (not unzip, not windows, not mac)
+- - Condider the script to download the [MER dataset](scripts/download_mer2023.csh), if it hangs, it's normal, just wait
+
 # Emotion-LLaMA: Multimodal Emotion Recognition and Reasoning with Instruction Tuning  
 
 [<img alt="Open In Colab" class="!m-0" src="https://colab.research.google.com/assets/colab-badge.svg">](https://colab.research.google.com/drive/1YTSadgBRfn75wpgpor8_mYWcM6TUPF-i?usp=sharing)
